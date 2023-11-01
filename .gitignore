@@ -1,0 +1,5 @@
+/.clj-kondo/
+/.lsp/
+/target/
+/src/irc_bot/.clj-kondo/
+/src/.DS_Store
