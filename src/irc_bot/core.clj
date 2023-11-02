@@ -4,14 +4,16 @@
            (java.io PrintWriter InputStreamReader BufferedReader)))
 
 
-(def servers [{:name "testnet.ergo.chat" :port 6667 :tls false
-               :channels ["#bots"]}
+(def servers [{:name "irc.hashbang.sh" :port 6697 :tls true
+               :channels ["#!" "#bots"]}
+              {:name "testnet.ergo.chat" :port 6667 :tls false
+               :channels ["#bots" "#0"]}
               {:name "irc.tilde.chat" :port 6697 :tls true
-               :channels ["#bots"]}
+               :channels ["#bots" "#meta"]}
               {:name "irc.libera.chat" :port 6667 :tls false
-               :channels ["#bots"]}])
+               :channels ["#bots" "#clojure"]}])
 
-(def user {:name "Clojure Bot" :nick "clj872"})
+(def user {:name "Clojure Bot" :nick "cljpt"})
 
 (declare conn-handler)
 
@@ -21,9 +23,10 @@
                                 (Socket. (:name server) (:port server))
                                 (:name server) (:port server) true)
                  (Socket. (:name server) (:port server)))
+        channels (:channels server)
         in     (BufferedReader. (InputStreamReader. (.getInputStream socket)))
         out    (PrintWriter. (.getOutputStream socket))
-        conn   (atom {:in in :out out :socket socket})]
+        conn   (atom {:in in :out out :socket socket :channels channels})]
     (doto (Thread. #(try (conn-handler conn)
                          (catch SocketException se
                            (println (str "Caught exception: " (.getMessage se))))))
@@ -69,4 +72,10 @@
           (.close (:socket @s)))
         (println "No established connection to:" (.toString (.getRemoteSocketAddress (:socket @s)))))))
 
-  (disconnect-servers connections))
+  (defn join-all-channels [conns]
+    (for [c conns
+          ch (:channels @c)]
+      (join c ch)))
+
+  (disconnect-servers connections)
+  (join-all-channels connections))
