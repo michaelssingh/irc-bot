@@ -1,18 +1,26 @@
 (ns irc-bot.core
-  (:import (java.net Socket SocketException)
+  (:import (javax.net.ssl SSLSocketFactory)
+           (java.net Socket SocketException)
            (java.io PrintWriter InputStreamReader BufferedReader)))
 
-(def testnet {:name "testnet.ergo.chat" :port 6667})
 
-(def servers [{:name "testnet.ergo.chat" :port 6667}
-             {:name "irc.libera.chat" :port 6667}])
+(def servers [{:name "testnet.ergo.chat" :port 6667 :tls false
+               :channels ["#bots"]}
+              {:name "irc.tilde.chat" :port 6697 :tls true
+               :channels ["#bots"]}
+              {:name "irc.libera.chat" :port 6667 :tls false
+               :channels ["#bots"]}])
 
 (def user {:name "Clojure Bot" :nick "clj872"})
 
 (declare conn-handler)
 
 (defn connect [server]
-  (let [socket (Socket. (:name server) (:port server))
+  (let [socket (if (true? (:tls server))
+                 (.createSocket (SSLSocketFactory/getDefault)
+                                (Socket. (:name server) (:port server))
+                                (:name server) (:port server) true)
+                 (Socket. (:name server) (:port server)))
         in     (BufferedReader. (InputStreamReader. (.getInputStream socket)))
         out    (PrintWriter. (.getOutputStream socket))
         conn   (atom {:in in :out out :socket socket})]
@@ -27,6 +35,9 @@
     (.println (str msg "\r"))
     (.flush)))
 
+(defn join [conn chan]
+  (write conn (str "JOIN " chan)))
+
 (defn login [conn user]
   (write conn (str "NICK " (:nick user)))
   (write conn (str "USER " (:nick user) " 0 * :" (:name user))))
@@ -34,7 +45,7 @@
 (defn connected? [conn] (.isConnected conn))
 
 (defn conn-handler [conn]
-  (println "connection handler")
+  (println "Connecting to:" (.toString (.getRemoteSocketAddress (:socket @conn))))
   (login conn user)
   (while (and (connected? (:socket @conn)) (nil? (:exit @conn)))
     (let [msg (.readLine (:in @conn))]
@@ -54,8 +65,8 @@
     (doseq [s conn]
       (if (not (disconnected? (:socket @s)))
         (do
-          (println "Closing socket : " s)
+          (println "Closing TCP socket connection:" (.toString (.getRemoteSocketAddress (:socket @s))))
           (.close (:socket @s)))
-        (println "Not connected to any server"))))
+        (println "No established connection to:" (.toString (.getRemoteSocketAddress (:socket @s)))))))
 
   (disconnect-servers connections))
