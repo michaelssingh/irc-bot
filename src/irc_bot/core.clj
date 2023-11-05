@@ -63,8 +63,7 @@
 
 (def connections (doall (map connect servers)))
 
-(comment
-  (defn disconnect-servers [conn]
+(defn disconnect-servers [conn]
     (doseq [s conn]
       (if (not (disconnected? (:socket @s)))
         (do
@@ -72,10 +71,11 @@
           (.close (:socket @s)))
         (println "No established connection to:" (.toString (.getRemoteSocketAddress (:socket @s)))))))
 
-  (defn join-all-channels [conns]
+(defn join-all-channels [conns]
     (for [c conns
           ch (:channels @c)]
       (join c ch)))
 
+(comment
   (disconnect-servers connections)
   (join-all-channels connections))
