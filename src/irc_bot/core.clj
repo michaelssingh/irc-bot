@@ -18,7 +18,7 @@
 (declare conn-handler)
 
 (defn connect [server]
-  (let [socket (if (true? (:tls server))
+  (let [socket (if (:tls server)
                  (.createSocket (SSLSocketFactory/getDefault)
                                 (Socket. (:name server) (:port server))
                                 (:name server) (:port server) true)
@@ -61,8 +61,6 @@
 
 (defn disconnected? [conn] (.isClosed conn))
 
-(def connections (doall (map connect servers)))
-
 (defn disconnect-servers [conn]
     (doseq [s conn]
       (if (not (disconnected? (:socket @s)))
@@ -77,5 +75,10 @@
       (join c ch)))
 
 (comment
+  (def connections (doall (map connect servers)))
+
   (disconnect-servers connections)
-  (join-all-channels connections))
+  
+  (join-all-channels connections)
+
+  ,)
